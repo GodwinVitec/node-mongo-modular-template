@@ -1,0 +1,66 @@
+{
+  "auth": {
+    "messages": {
+      "user": "Authenticated User",
+      "signIn": {
+        "attemptSuccess": "Attempt passed.",
+        "success": "You have successfully logged in."
+      },
+      "authTokens": {
+        "generated": "Auth Tokens Generated Successfully.",
+        "updated": "Auth token updated successfully.",
+        "refreshed": "Auth tokens refreshed successfully."
+      }
+    },
+    "errors": {
+      "unauthenticated": "Unauthenticated. Please sign in.",
+      "unauthorized": "Unauthorized. It appears you do not have the appropriate rights to access this resource.",
+      "filterParameterRequired": "The filter parameter is required.",
+      "updateParameterRequired": "The update parameter is required.",
+      "authTokens": {
+        "notFound": "Unauthorized. We could not find the authorization for that token."
+      },
+      "signIn": {
+        "requiredParameters": "Username and Password are required.",
+        "invalidCredentials": "Invalid sign in credentials."
+      },
+      "signUp": {
+        "failed": "Registration failed.",
+        "password": {
+          "confirmationMismatch": "The password confirmation must match the password."
+        },
+        "email": {
+          "duplicate": "This email has already been registered. Please sign in."
+        },
+        "username": {
+          "duplicate": "This username has been taken. Please select a different username."
+        }
+      },
+      "clearanceLevel": {
+        "required": "Unauthorized. This resource is above your clearance level(:level)."
+      },
+      "rateLimiting": {
+        "exceeded": "Rate limit exceeded. Please try again later."
+      }
+    }
+  },
+  "user": {
+    "messages": {
+      "getAllSuccess": "Users retrieved successfully.",
+      "account": {
+        "created": "Registration successful. Please verify your email.",
+        "retrieved": "Account retrieved successfully.",
+        "updated": "Account updated successfully.",
+        "destroyed": "Account deleted successfully."
+      }
+    },
+    "errors": {
+      "account": {
+        "create": "Failed to register user.",
+        "disabled": "Your account has been blocked. Please contact the admin through support@shippa.com",
+        "notFound": "Your credentials do not match our records.",
+        "destroy": "Failed to delete account"
+      }
+    }
+  }
+}
