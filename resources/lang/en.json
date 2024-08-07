@@ -62,6 +62,7 @@
       "getAllSuccess": "Users retrieved successfully.",
       "account": {
         "created": "Registration successful. Please verify your email.",
+        "verified": "Account verification successful. Please sign in.",
         "retrieved": "Account retrieved successfully.",
         "updated": "Account updated successfully.",
         "destroyed": "Account deleted successfully."
@@ -72,7 +73,9 @@
         "create": "Failed to register user.",
         "disabled": "Your account has been blocked. Please contact the admin through support@shippa.com",
         "notFound": "Your credentials do not match our records.",
-        "destroy": "Failed to delete account"
+        "destroy": "Failed to delete account",
+        "verify": "Verification failed.",
+        "alreadyVerified": "Your account has already been verified. Please sign in."
       }
     }
   },

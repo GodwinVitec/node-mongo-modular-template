@@ -102,6 +102,42 @@ class UserService extends BaseService {
     }
   }
 
+  activateAccount = async(user) => {
+    if (
+      user.status === this.commonHelper.config(
+        "auth.account.statusEnums.ACTIVE"
+      ) &&
+      user.isActive === true
+    ) {
+      return this.error(
+        this.commonHelper.trans(
+          "user.errors.account.alreadyVerified"
+        )
+      );
+    }
+
+    const verifyUser = await this.update(
+      user._id,
+      {
+        status: this.commonHelper.config(
+          "auth.account.statusEnums.ACTIVE"
+        ),
+        isActive: true
+      }
+    );
+
+    if (!verifyUser.status === true) {
+      return verifyUser;
+    }
+
+    return this.success(
+      this.commonHelper.trans(
+        "user.messages.account.verified"
+      ),
+      verifyUser.data
+    );
+  }
+
   update = async (id, userData) => {
     try {
       const updatedUser = await this.userRepository.update(
