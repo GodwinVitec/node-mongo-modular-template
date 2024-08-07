@@ -68,6 +68,17 @@ class AuthService extends BaseService {
     const passwordMatched = await user.comparePassword(userData.password);
 
     if (!passwordMatched) {
+      this.commonHelper.log(
+        JSON.stringify({
+          activity: 'Login Attempt',
+          details: {...userData},
+          status: 'failed'
+        }),
+        this.commonHelper.config(
+          "app.logging.logLevel.WARN"
+        )
+      );
+
       return this.error(
         this.commonHelper.trans(
           "auth.errors.signIn.invalidCredentials"
@@ -82,6 +93,16 @@ class AuthService extends BaseService {
         )
       );
     }
+
+    delete userData.password;
+
+    this.commonHelper.log(
+      JSON.stringify({
+        activity: 'Login Attempt',
+        details: {...userData},
+        status: 'success'
+      })
+    );
 
     return this.success(
       this.commonHelper.trans(

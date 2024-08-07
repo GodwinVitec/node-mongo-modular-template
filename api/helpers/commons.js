@@ -2,12 +2,36 @@ const path = require('path');
 const envPath = path.resolve(process.cwd(), `./envs/.env.${process.env.APP_ENV}`);
 const supportedLanguagesPath = path.resolve(process.cwd(), './configs/supported_languages.json');
 const supportedLanguages = require(supportedLanguagesPath);
+const winston = require('winston');
+const moment = require('moment');
 
 require('dotenv').config({
   path: envPath
 });
 
 class Commons {
+  #logger;
+
+  constructor() {
+    this.#logger = winston.createLogger({
+      level: process.env.APP_DEFAULT_LOG_LEVEL || 'info',
+      format: winston.format.simple(),
+      transports: [
+        new winston.transports.File({
+          filename: path.resolve(
+            process.cwd(), `${process.env.APP_LOG_FILES ? process.env.APP_LOG_FILES + '/' : ''}${moment().format('Y-M-D')}.log`
+          )
+        }),
+      ],
+    });
+
+    if (process.env.APP_ENV !== 'production') {
+      this.#logger.add(new winston.transports.Console({
+        format: winston.format.simple(),
+      }));
+    }
+  }
+
   /**
    * Check if a value is empty. A parameter with values like undefined, null,
    * "", 0, false, [], {} are considered empty.
@@ -34,7 +58,7 @@ class Commons {
     const _validated = {};
 
     for (const key of Object.keys(validator.rules())) {
-      if(this.empty(request.body[key])) {
+      if (this.empty(request.body[key])) {
         continue;
       }
 
@@ -165,6 +189,31 @@ class Commons {
       console.log(err.message);
       return accessString;
     }
+  }
+
+  /**
+   * Provide a central logging function that will function
+   * as a logger for the application.
+   *
+   * @param {String} logMessage
+   * @param {String} logLevel
+   *
+   * @return {void}
+   */
+  log = (logMessage, logLevel = 'info') => {
+    if (
+      !this.config(
+        "app.logging.logLevels"
+      ).includes(logLevel)
+    ) {
+      throw new Error(
+        this.trans("commons.errors.logging.invalidLevel")
+      )
+    }
+
+    this.#logger[logLevel](
+      `\'${moment().format("Y-M-D H:m:s") + "\': " + logMessage}`
+    );
   }
 }
 

@@ -25,7 +25,8 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "snappy": "^7.2.2",
-    "validatorjs": "^3.22.1"
+    "validatorjs": "^3.22.1",
+    "winston": "^3.13.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
