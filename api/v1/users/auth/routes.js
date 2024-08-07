@@ -11,6 +11,7 @@ const SignUpRequest = require('./Middlewares/RequestValidators/SignUpRequest');
 const SignInRequest = require('./Middlewares/RequestValidators/SignInRequest');
 const RefreshTokenRequest = require('./Middlewares/RequestValidators/RefreshTokenRequest');
 const VerifyLoginOTPRequest = require('./Middlewares/RequestValidators/VerifyLoginOTPRequest');
+const VerifyAccountRequest = require('./Middlewares/RequestValidators/VerifyAccountRequest');
 
 // Middlewares
 const authenticateToken = Auth.authenticate;
@@ -28,6 +29,12 @@ router.post(
 );
 
 router.post(
+  '/account/verify',
+  VerifyAccountRequest,
+  authHandler.verifyAccount
+);
+
+router.post(
   '/login',
   SignInRequest,
   authHandler.signIn
@@ -36,7 +43,7 @@ router.post(
 router.post(
   '/login/verify',
   VerifyLoginOTPRequest,
-  authHandler.verifyLogin
+  authHandler.verifySignIn
 );
 
 router.post(

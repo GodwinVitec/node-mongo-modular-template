@@ -88,9 +88,65 @@ class AuthController extends BaseController{
       );
     }
 
+    let generateOTP = await this.otpService.create(
+      signupResponse.data,
+      this.commonHelper.config(
+        "auth.otp.types.SIGNUP.title"
+      )
+    );
+
+    if (!generateOTP?.status) {
+      // Retry one time and move on
+      generateOTP = await this.otpService.create(
+        signupResponse.data,
+        this.commonHelper.config(
+          "auth.otp.types.SIGNUP.title"
+        )
+      );
+    }
+
     return this.success(
       res,
       signupResponse.message,
+    );
+  }
+
+  verifyAccount = async(req, res) => {
+    const {email, otp} = req.validated;
+
+    const verifyOTP = await this.otpService.verify(
+      otp,
+      email,
+      this.commonHelper.config(
+        "auth.otp.types.SIGNUP.title"
+      )
+    );
+
+    if (!verifyOTP.status) {
+      return this.fail(
+        res,
+        verifyOTP.errors,
+        verifyOTP.trace
+      );
+    }
+
+    const verifiedUser = await this.userService
+      .activateAccount(verifyOTP.data);
+
+    if (!verifiedUser.status) {
+      return this.fail(
+        res,
+        verifiedUser.errors,
+        verifiedUser.trace,
+        400
+      );
+    }
+
+    return this.success(
+      res,
+      this.commonHelper.trans(
+        "user.messages.account.verified"
+      )
     );
   }
 
@@ -134,7 +190,7 @@ class AuthController extends BaseController{
     );
   }
 
-  verifyLogin = async (req, res) => {
+  verifySignIn = async (req, res) => {
     const {otp, email} = req.validated;
 
     const verifyOTP = await this.otpService.verify(

@@ -1,6 +1,8 @@
 const {Schema, model} = require("mongoose");
 const bcrypt = require('bcryptjs');
+const Commons = require("../../../../helpers/commons");
 
+const config = (new Commons()).config;
 
 const userSchema = new Schema({
   firstName: {
@@ -64,7 +66,8 @@ const userSchema = new Schema({
   status: {
     type: String,
     required: true,
-    index: true
+    index: true,
+    enum: config("auth.account.allowedStatuses")
   },
   lastLogin: {
     type: Date,

@@ -23,7 +23,8 @@ class AuthService extends BaseService {
       }
 
       return this.success(
-        signUpResponse.message
+        signUpResponse.message,
+        signUpResponse.data
       );
     } catch (err) {
       return this.error(
