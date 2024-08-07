@@ -86,6 +86,9 @@
     "errors": {
       "config": {
         "accessStringRequired": "The accessString parameter is required."
+      },
+      "logging": {
+        "invalidLevel": "The log level specified is invalid."
       }
     }
   }
