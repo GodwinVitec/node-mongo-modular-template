@@ -29,9 +29,9 @@ class UserService extends BaseService {
 
     if (!user) {
       return this.error(
-        [this.commonHelper.trans(
+        this.commonHelper.trans(
           "user.errors.account.notFound"
-        )]
+        )
       );
     }
 
@@ -48,9 +48,9 @@ class UserService extends BaseService {
 
     if (!user) {
       return this.error(
-        [this.commonHelper.trans(
+        this.commonHelper.trans(
           "user.errors.account.notFound"
-        )]
+        )
       );
     }
 
@@ -147,9 +147,9 @@ class UserService extends BaseService {
 
       if (this.commonHelper.empty(destroyResponse?._id)) {
         return this.error(
-          [this.commonHelper.trans(
+          this.commonHelper.trans(
             "user.errors.account.notFound"
-          )]
+          )
         );
       }
 

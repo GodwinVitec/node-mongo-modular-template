@@ -57,7 +57,7 @@ class Commons {
   /**
    * Return the translated message based on the supported
    * languages in the application.
-   * If no matching value is found, an empty string is
+   * If no matching value is found, the messageKey is
    * returned.
    *
    * @param {String} messageKey
@@ -100,6 +100,70 @@ class Commons {
     } catch (err) {
       console.log(err.message);
       return messageKey;
+    }
+  }
+
+  /**
+   * Return the config value from a config file.
+   * The 'accessString' parameter should have the config
+   * filename as the first part of the string.
+   * @desc All config files that must use this function
+   * must have '.js' extension.
+   *
+   * @description For example to get a value 'duration' from
+   * the 'app.js' config file, you would pass 'app.duration'
+   * as the 'accessString' parameter.
+   *
+   * @description Configs are expected to be atomic and
+   * contain no nesting, however, this function will do
+   * the nesting if you specify additional values example
+   * 'app.duration.demo' to get the demo property of the
+   * duration key in the app.js config file.
+   *
+   * @description If the config file is not found, the accessString is
+   * returned. Also, if the config file is found but no matching
+   * value is found, the accessString is returned.
+   *
+   * @param {String} accessString
+   * @param {String} accessPrefix
+   *
+   * @return {any}
+   */
+  config = (accessString, accessPrefix = 'v1') => {
+    if (this.empty(accessString)) {
+      throw new Error(
+        this.trans("commons.errors.config.accessStringRequired")
+      );
+    }
+
+    const parts = accessString.split('.');
+    const filename = parts[0];
+
+    const filePath = `${!this.empty(accessPrefix) ? accessPrefix + '/' : ''}${filename}`;
+
+    try {
+      const configPath = path.resolve(
+        process.cwd(), `./configs/${filePath}.js`
+      );
+
+      const config = require(configPath);
+
+      if (parts.length < 2) {
+        return config;
+      }
+
+      const keyParts = parts.slice(1);
+
+      let value = config[keyParts[0]];
+
+      for (const key of keyParts.slice(1)) {
+        value = value[key];
+      }
+
+      return !this.empty(value) ? value : accessString;
+    } catch (err) {
+      console.log(err.message);
+      return accessString;
     }
   }
 }
