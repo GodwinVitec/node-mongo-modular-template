@@ -10,6 +10,7 @@ Auth = new Auth();
 const SignUpRequest = require('./Middlewares/RequestValidators/SignUpRequest');
 const SignInRequest = require('./Middlewares/RequestValidators/SignInRequest');
 const RefreshTokenRequest = require('./Middlewares/RequestValidators/RefreshTokenRequest');
+const VerifyLoginOTPRequest = require('./Middlewares/RequestValidators/VerifyLoginOTPRequest');
 
 // Middlewares
 const authenticateToken = Auth.authenticate;
@@ -20,11 +21,22 @@ const clearanceLevel1 = Auth.clearanceLevel1;
 const authHandler = new AuthController();
 
 // Open Routes
-router.post('/signup', SignUpRequest, authHandler.signup);
+router.post(
+  '/signup',
+  SignUpRequest,
+  authHandler.signup
+);
+
 router.post(
   '/login',
   SignInRequest,
   authHandler.signIn
+);
+
+router.post(
+  '/login/verify',
+  VerifyLoginOTPRequest,
+  authHandler.verifyLogin
 );
 
 router.post(

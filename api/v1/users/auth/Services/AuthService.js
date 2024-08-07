@@ -44,9 +44,9 @@ class AuthService extends BaseService {
       this.commonHelper.empty(userData.password)
     ) {
       return this.error(
-        [this.commonHelper.trans(
+        this.commonHelper.trans(
           "auth.signIn.requiredParameters"
-        )]
+        )
       );
     }
 
@@ -56,9 +56,9 @@ class AuthService extends BaseService {
 
     if (!userExists.status) {
       return this.error(
-        [this.commonHelper.trans(
+        this.commonHelper.trans(
           "user.errors.account.notFound"
-        )]
+        )
       );
     }
 
@@ -68,17 +68,17 @@ class AuthService extends BaseService {
 
     if (!passwordMatched) {
       return this.error(
-        [this.commonHelper.trans(
+        this.commonHelper.trans(
           "auth.errors.signIn.invalidCredentials"
-        )]
+        )
       );
     }
 
     if (!user.isActive) {
       return this.error(
-        [this.commonHelper.trans(
+        this.commonHelper.trans(
           "user.errors.account.disabled"
-        )]
+        )
       );
     }
 
@@ -148,9 +148,9 @@ class AuthService extends BaseService {
 
     if(this.commonHelper.empty(userId)) {
       return this.error(
-        [this.commonHelper.trans(
+        this.commonHelper.trans(
           "auth.errors.authTokens.notFound"
-        )]
+        )
       );
     }
 
@@ -166,9 +166,9 @@ class AuthService extends BaseService {
       this.commonHelper.empty(tokenExists._id)
     ) {
       return this.error(
-        [this.commonHelper.trans(
+        this.commonHelper.trans(
           "auth.errors.authTokens.notFound"
-        )]
+        )
       );
     }
 

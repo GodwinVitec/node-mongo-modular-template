@@ -4,12 +4,17 @@
       "user": "Authenticated User",
       "signIn": {
         "attemptSuccess": "Attempt passed.",
-        "success": "You have successfully logged in."
+        "success": "Please verify your login with the OTP sent to your email.",
+        "verified": "You have successfully logged in."
       },
       "authTokens": {
         "generated": "Auth Tokens Generated Successfully.",
         "updated": "Auth token updated successfully.",
         "refreshed": "Auth tokens refreshed successfully."
+      },
+      "otp": {
+        "generated": "OTP generated successfully.",
+        "verified": "OTP verified successfully."
       }
     },
     "errors": {
@@ -19,6 +24,14 @@
       "updateParameterRequired": "The update parameter is required.",
       "authTokens": {
         "notFound": "Unauthorized. We could not find the authorization for that token."
+      },
+      "otp": {
+        "incompleteParameters": "Please provide all required parameters.",
+        "invalidPurpose": "This is not a valid purpose for an OTP.",
+        "notFound": "Sorry. You have provided an invalid OTP.",
+        "unauthorizedUser": "You have provided an invalid OTP. Please retry.",
+        "invalid": "Sorry. You have provided an invalid OTP. Please retry.",
+        "expired": "Sorry. Your OTP has expired."
       },
       "signIn": {
         "requiredParameters": "Username and Password are required.",
@@ -60,6 +73,16 @@
         "disabled": "Your account has been blocked. Please contact the admin through support@shippa.com",
         "notFound": "Your credentials do not match our records.",
         "destroy": "Failed to delete account"
+      }
+    }
+  },
+  "commons": {
+    "messages": {
+
+    },
+    "errors": {
+      "config": {
+        "accessStringRequired": "The accessString parameter is required."
       }
     }
   }

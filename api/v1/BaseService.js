@@ -7,10 +7,10 @@ class BaseService {
     };
   }
 
-  error(errors = [], trace= null) {
+  error(errors, trace= null) {
     return {
       status: false,
-      errors,
+      errors: Array.isArray(errors) ? errors : [errors],
       trace
     };
   }

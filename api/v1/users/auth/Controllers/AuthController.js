@@ -1,5 +1,6 @@
 const BaseController = require('../../../BaseController');
 const AuthService = require('../Services/AuthService');
+const OTPService = require('../Services/OTPService');
 const LoginTransformer = require('../Transformers/LoginTransformer');
 const UserAuthTokensTransformer = require('../Transformers/UserAuthTokensTransformer');
 const Commons = require('../../../../helpers/commons');
@@ -13,6 +14,7 @@ class AuthController extends BaseController{
 
     this.authService = new AuthService();
     this.userService = new UserService();
+    this.otpService = new OTPService();
 
     this.loginTransformer = new LoginTransformer();
     this.userAuthTokenTransformer = new UserAuthTokensTransformer();
@@ -107,6 +109,51 @@ class AuthController extends BaseController{
     }
 
     let user = attemptLogin.data;
+
+    const generateOTP = await this.otpService.create(
+      user,
+      this.commonHelper.config(
+        "auth.otp.types.LOGIN.title"
+      )
+    );
+
+    if (!generateOTP?.status) {
+      return this.fail(
+        res,
+        generateOTP.errors,
+        generateOTP.trace,
+        500
+      );
+    }
+
+    return this.success(
+      res,
+      this.commonHelper.trans(
+        "auth.messages.signIn.success"
+      )
+    );
+  }
+
+  verifyLogin = async (req, res) => {
+    const {otp, email} = req.validated;
+
+    const verifyOTP = await this.otpService.verify(
+      otp,
+      email,
+      this.commonHelper.config(
+        "auth.otp.types.LOGIN.title"
+      )
+    );
+
+    if (!verifyOTP.status) {
+      return this.fail(
+        res,
+        verifyOTP.errors,
+        verifyOTP.trace
+      );
+    }
+
+    let user = verifyOTP.data;
     const userAuthTokensData = await this.authService.getAuthTokens(user);
 
     if (!userAuthTokensData.status) {

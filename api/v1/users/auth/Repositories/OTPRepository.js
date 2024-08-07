@@ -1,18 +1,18 @@
-const UserAuthToken = require('../Models/UserAuthToken');
-const Commons = require('../../../../helpers/commons');
+const OTP = require("../Models/OTP");
+const Commons = require("../../../../helpers/commons");
 
-class AuthRepository {
+class OTPRepository {
   constructor() {
-    this.userAuthToken = UserAuthToken;
+    this.model = OTP;
 
     this.commonHelper = new Commons();
   }
 
-  async createAuthToken(authTokenData) {
-    return await this.userAuthToken.create(authTokenData);
+  create = async (otpData) => {
+    return await this.model.create(otpData)
   }
 
-  async updateAuthToken(
+  async update(
     filter = {},
     update = {},
     options = {},
@@ -35,21 +35,21 @@ class AuthRepository {
     }
 
     if (!isMany) {
-      return this.userAuthToken.findOneAndUpdate(
+      return this.model.findOneAndUpdate(
         {...filter},
         {...update},
         {...options}
       );
     }
 
-    return this.userAuthToken.updateMany(
+    return this.model.updateMany(
       {...filter},
       {...update},
       {...options}
     );
   }
 
-  async destroyAuthToken(
+  async destroy(
     filter = {},
     isMany = false
   ) {
@@ -62,22 +62,23 @@ class AuthRepository {
     }
 
     if(!isMany) {
-      return this.userAuthToken.findOneAndDelete(
+      return this.model.findOneAndDelete(
         {...filter}
       );
     }
 
-    return this.userAuthToken.deleteMany({...filter});
+    return this.model.deleteMany({...filter});
   }
 
-  async getUserAuthTokens(filter = {}) {
-    return this.userAuthToken.find({...filter});
+  async find(filter = {}) {
+    return this.model.find({...filter});
   }
 
 
-  async getUserAuthToken(filter = {}) {
-    return this.userAuthToken.findOne({...filter});
+  async findOne(filter = {}) {
+    return this.model.findOne({...filter});
   }
 }
 
-module.exports = AuthRepository;
+
+module.exports = OTPRepository;
