@@ -10,7 +10,10 @@ class VerifyOTPRequest extends BaseValidator {
       email: 'required|string|email',
       purpose: [
         'required',
-        'string', {"in": config("auth.otp.allowedTypes")}
+        'string',
+        {
+          "in": config("auth.otp.allowedTypes")
+        }
       ]
     };
   }
