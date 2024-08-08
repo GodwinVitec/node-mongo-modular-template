@@ -16,6 +16,20 @@ const AppConfig = {
       VERBOSE: 'verbose',
       SILLY: 'silly'
     }
+  },
+  envs: {
+    allowedEnvs: [
+      'local',
+      'staging',
+      'development',
+      'production'
+    ],
+    types: {
+      LOCAL: 'local',
+      STAGING: 'staging',
+      DEVELOPMENT: 'development',
+      PRODUCTION: 'production'
+    }
   }
 };
 

@@ -215,6 +215,18 @@ class Commons {
       `\'${moment().format("Y-M-D H:m:s") + "\': " + logMessage}`
     );
   }
+
+
+  /**
+   * Get the IP address of a request.
+   *
+   *
+   * @param {Request} req
+   * @return {String}
+   */
+  getIpAddress = (req) => {
+    return req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip;
+  }
 }
 
 module.exports = Commons;

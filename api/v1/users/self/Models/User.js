@@ -76,6 +76,18 @@ const userSchema = new Schema({
   isActive: {
     type: Boolean,
     default: false,
+  },
+  failedSignIns: {
+    type: Number,
+    default: null
+  },
+  suspensionDuration: {
+    type: Number,
+    default: null
+  },
+  suspendedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true,
