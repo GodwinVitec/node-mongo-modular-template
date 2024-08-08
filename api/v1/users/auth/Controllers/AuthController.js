@@ -153,7 +153,10 @@ class AuthController extends BaseController{
   signIn = async (req, res) => {
     const validated = req.validated;
 
-    const attemptLogin = await this.authService.attempt(validated);
+    const attemptLogin = await this.authService.attempt(
+      validated,
+      req
+    );
 
     if (!attemptLogin.status) {
       return this.fail(
@@ -180,6 +183,14 @@ class AuthController extends BaseController{
         generateOTP.trace,
         500
       );
+    }
+
+    if (
+      this.commonHelper.env('APP_ENV') === this.commonHelper.config(
+        "app.envs.types.LOCAL"
+      )
+    ) {
+      console.log('generated', generateOTP);
     }
 
     return this.success(

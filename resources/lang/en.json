@@ -54,6 +54,10 @@
       },
       "rateLimiting": {
         "exceeded": "Rate limit exceeded. Please try again later."
+      },
+      "accountSuspension": {
+        "configNotFound": "No account suspension configuration found.",
+        "invalidConfiguration": "Invalid suspension configuration."
       }
     }
   },
@@ -72,6 +76,8 @@
       "account": {
         "create": "Failed to register user.",
         "disabled": "Your account has been blocked. Please contact the admin through support@shippa.com",
+        "disabledUntil": "Your account has been blocked until :until. Please use the forgot password option, or contact the admin through support@shippa.com",
+        "disabledUseForgotPassword": "Your account has been blocked. Please use the forgot password option, or contact the admin through support@shippa.com",
         "notFound": "Your credentials do not match our records.",
         "destroy": "Failed to delete account",
         "verify": "Verification failed.",
@@ -89,6 +95,9 @@
       },
       "logging": {
         "invalidLevel": "The log level specified is invalid."
+      },
+      "value": {
+        "mustBeNumber": "The :parameter parameter must be a number."
       }
     }
   }

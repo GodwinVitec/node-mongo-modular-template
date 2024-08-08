@@ -18,11 +18,29 @@ const AuthConfig = {
   account: {
     allowedStatuses: [
       "ACTIVE",
-      "INACTIVE"
+      "INACTIVE",
+      "SUSPENDED"
     ],
-    statusEnums: {
+    statuses: {
       ACTIVE: "ACTIVE",
-      INACTIVE: "INACTIVE"
+      INACTIVE: "INACTIVE",
+      SUSPENDED: "SUSPENDED",
+    },
+    suspension: {
+      thresholdCounts: {
+        ALERT: 3,
+        WARN: 5,
+        MALICIOUS: 10,
+        ALARM: 15,
+        DEADLY: 20
+      },
+      duration: {
+        ALERT: 5, // 5 Minutes
+        WARN: 15, // 15 Minutes
+        MALICIOUS: 60 * 24, // One day
+        ALARM: 60 * 24 * 7, // 7 Days
+        DEADLY: 60 * 24 * 7 * 54 // One Year
+      }
     }
   }
 };

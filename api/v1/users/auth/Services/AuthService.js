@@ -3,15 +3,22 @@ const BaseService = require('../../../BaseService');
 const AuthRepository = require('../Repositories/AuthRepository');
 const UserService = require('../../self/Services/UserService');
 const Commons = require('../../../../helpers/commons');
+const DateHelper = require('../../../../helpers/datetime');
 const {Types} = require("mongoose");
+const SignInAttemptRepository = require("../Repositories/SignInAttemptRepository");
+const moment = require("moment");
 
 class AuthService extends BaseService {
+  #signInAttemptRepository;
+
   constructor() {
     super();
     this.authRepository = new AuthRepository();
+    this.#signInAttemptRepository = new SignInAttemptRepository();
 
     this.userService = new UserService();
     this.commonHelper = new Commons();
+    this.dateHelper = new DateHelper();
   }
 
   signup = async (userData) => {
@@ -39,7 +46,7 @@ class AuthService extends BaseService {
     }
   }
 
-  attempt = async (userData) => {
+  attempt = async (userData, req) => {
     if (
       this.commonHelper.empty(userData.username) ||
       this.commonHelper.empty(userData.password)
@@ -63,7 +70,7 @@ class AuthService extends BaseService {
       );
     }
 
-    const user = userExists.data;
+    let user = userExists.data;
 
     const passwordMatched = await user.comparePassword(userData.password);
 
@@ -79,9 +86,83 @@ class AuthService extends BaseService {
         )
       );
 
+      await this.#signInAttemptRepository.create({
+        user: user._id,
+        ...userData,
+        ipAddress: this.commonHelper.getIpAddress(req)
+      });
+
+      const totalFailedAttempts = await this.#signInAttemptRepository
+        .count({
+          user: user._id
+        });
+
+      user = await this.#onFailedSignInAttempt(user, totalFailedAttempts);
+
+      if (
+        user.status === this.commonHelper.config(
+          "auth.account.statuses.SUSPENDED"
+        )
+      ) {
+        return this.error(
+          this.commonHelper.trans(
+            "user.errors.account.disabledUntil"
+          ).replace(
+            ':until',
+            this.dateHelper.formatDateTime(
+              moment(user.suspendedAt).add(user.suspensionDuration, 'minutes')
+                .toISOString()
+            )
+          )
+        );
+      }
+
       return this.error(
         this.commonHelper.trans(
           "auth.errors.signIn.invalidCredentials"
+        )
+      );
+    }
+
+
+    // if the account is suspended and the number of failed attempts exceeds
+    // the ALERT threshold, or the time of suspension has not elapsed,
+    // then prevent signing in.
+    if (
+      user.status === this.commonHelper.config(
+        "auth.account.statuses.SUSPENDED"
+      ) && (
+        user.failedSignIns > this.commonHelper.config(
+          "auth.account.suspension.thresholdCounts.ALERT"
+        ) ||
+        moment().isBefore(
+          moment(user.suspendedAt)
+          .add(user.suspensionDuration, 'minutes')
+        )
+      )
+    ) {
+      // If the number of failed sign-ins did surpass the ALERT threshold
+      // then the user must use forgot password.
+
+      if(user.failedSignIns > this.commonHelper.config(
+        "auth.account.suspension.thresholdCounts.ALERT"
+      )) {
+        return this.error(
+          this.commonHelper.trans(
+            "user.errors.account.disabledUseForgotPassword"
+          )
+        );
+      }
+
+      return this.error(
+        this.commonHelper.trans(
+          "user.errors.account.disabledUntil"
+        ).replace(
+          ':until',
+          this.dateHelper.formatDateTime(
+            moment(user.suspendedAt).add(user.suspensionDuration, 'minutes')
+              .toISOString()
+          )
         )
       );
     }
@@ -92,6 +173,25 @@ class AuthService extends BaseService {
           "user.errors.account.disabled"
         )
       );
+    }
+
+    if (user.failedSignIns) {
+      await this.#signInAttemptRepository.destroy(
+        {
+          user: new Types.ObjectId(user._id)
+        },
+        true
+      );
+    }
+
+    // From failedSignIns <= ALERT threshold we can unblock
+    // the account if the waiting time elapses
+    if (
+      user.status === this.commonHelper.config(
+        "auth.account.statuses.SUSPENDED"
+      )
+    ) {
+      await this.userService.activateAccount(user);
     }
 
     delete userData.password;
@@ -110,6 +210,73 @@ class AuthService extends BaseService {
       ),
       user
     );
+  }
+
+
+  #onFailedSignInAttempt = async (user, failedAttempts) => {
+    if (typeof failedAttempts !== 'number') {
+      throw new Error(
+        this.commonHelper.trans(
+          "commons.errors.value.mustBeNumber"
+        ).replace(":parameter", 'failedAttempts')
+      );
+    }
+
+    const suspension = this.commonHelper.config(
+      "auth.account.suspension"
+    );
+
+    /**
+     * The expected configuration for suspension must have two properties
+     * 1. The thresholdCounts to hold configs for the count for each suspension
+     * 2. The duration to hold configs for duration of each threshold count
+     *
+     * The accepted levels for threshold counts include ALERT, WARN, MALICIOUS, ALARM and DEADLY.
+     * If any of these are not available, kindly remove from all concerned places
+     * otherwise an error will be thrown.
+     */
+    this.validateSuspensionConfig(suspension);
+
+    if (failedAttempts < suspension.thresholdCounts.ALERT) {
+      // There are not enough failed attempts to warrant an action
+      return user;
+    }
+
+    let suspensionConfig = {
+      failedSignIns: failedAttempts
+    };
+
+    if (this.commonHelper.empty(user.suspendedAt)) {
+      suspensionConfig.suspendedAt = new Date();
+    }
+
+    const thresholds = suspension.thresholdCounts;
+    const durations = suspension.duration;
+
+    if (failedAttempts >= thresholds.DEADLY) {
+      suspensionConfig.suspensionDuration = durations.DEADLY;
+      suspensionConfig.isActive = false; // deactivate the account
+    } else if (failedAttempts >= thresholds.ALARM) {
+      suspensionConfig.suspensionDuration = durations.ALARM;
+    } else if (failedAttempts >= thresholds.MALICIOUS) {
+      suspensionConfig.suspensionDuration = durations.MALICIOUS;
+    } else if (failedAttempts >= thresholds.WARN) {
+      suspensionConfig.suspensionDuration = durations.WARN;
+    } else {
+      suspensionConfig.suspensionDuration = durations.ALERT;
+    }
+
+    suspensionConfig.status = this.commonHelper.config(
+      "auth.account.statuses.SUSPENDED"
+    );
+
+    const updateUser = await this.userService.update(user._id, suspensionConfig);
+
+    if (updateUser.status !== true) {
+      throw new Error(updateUser.errors.join('. '))
+    }
+
+    return updateUser.data;
   }
 
 
@@ -154,6 +321,64 @@ class AuthService extends BaseService {
     );
   }
 
+  validateSuspensionConfig = (suspension) => {
+    const empty = this.commonHelper.empty;
+
+    if (
+      typeof suspension !== 'object' ||
+      empty(suspension.thresholdCounts) ||
+      empty(suspension.thresholdCounts.ALERT) ||
+      empty(suspension.thresholdCounts.WARN) ||
+      empty(suspension.thresholdCounts.MALICIOUS) ||
+      empty(suspension.thresholdCounts.ALARM) ||
+      empty(suspension.thresholdCounts.DEADLY) ||
+      empty(suspension.duration) ||
+      empty(suspension.duration.ALERT) ||
+      empty(suspension.duration.WARN) ||
+      empty(suspension.duration.MALICIOUS) ||
+      empty(suspension.duration.ALARM) ||
+      empty(suspension.duration.DEADLY)
+    ) {
+      throw new Error(
+        this.commonHelper.trans(
+          "auth.errors.accountSuspension.configNotFound"
+        )
+      );
+    }
+
+    const thresholds = suspension.thresholdCounts;
+
+    for (const threshold of Object.keys(thresholds)) {
+      if (
+        Number.isNaN(
+          Number.parseInt(thresholds[threshold])
+        )
+      ) {
+        throw new Error(
+          this.commonHelper.trans(
+            "auth.errors.accountSuspension.invalidConfiguration"
+          )
+        );
+      }
+    }
+
+    const durations = suspension.duration;
+
+    for (const duration of Object.keys(durations)) {
+      if (
+        Number.isNaN(
+          Number.parseInt(durations[duration])
+        )
+      ) {
+        throw new Error(
+          this.commonHelper.trans(
+            "auth.errors.accountSuspension.invalidConfiguration"
+          )
+        );
+      }
+    }
+  }
+
 
   refreshToken = async (refreshToken) => {
     let userId = null;
@@ -168,7 +393,7 @@ class AuthService extends BaseService {
       }
     );
 
-    if(this.commonHelper.empty(userId)) {
+    if (this.commonHelper.empty(userId)) {
       return this.error(
         this.commonHelper.trans(
           "auth.errors.authTokens.notFound"

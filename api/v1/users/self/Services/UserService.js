@@ -105,7 +105,7 @@ class UserService extends BaseService {
   activateAccount = async(user) => {
     if (
       user.status === this.commonHelper.config(
-        "auth.account.statusEnums.ACTIVE"
+        "auth.account.statuses.ACTIVE"
       ) &&
       user.isActive === true
     ) {
@@ -116,14 +116,28 @@ class UserService extends BaseService {
       );
     }
 
+    const updateData = {
+      status: this.commonHelper.config(
+        "auth.account.statuses.ACTIVE"
+      ),
+      isActive: true
+    };
+
+    if (
+      user.status === this.commonHelper.config(
+        "auth.account.statuses.SUSPENDED"
+      )
+    ) {
+      console.log('Add account suspension history here.');
+
+      updateData.suspendedAt = null;
+      updateData.suspensionDuration = null;
+      updateData.failedSignIns = null;
+    }
+
     const verifyUser = await this.update(
       user._id,
-      {
-        status: this.commonHelper.config(
-          "auth.account.statusEnums.ACTIVE"
-        ),
-        isActive: true
-      }
+      updateData
     );
 
     if (!verifyUser.status === true) {
