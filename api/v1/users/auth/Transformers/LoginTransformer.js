@@ -24,8 +24,8 @@ class LoginTransformer extends BaseTransformer {
       clearanceLevel: user.clearanceLevel,
       status: user.status,
       isActive: user.isActive,
-      lastLogin: this.datetimeHelper.formatDateTime(user.lastLogin.toISOString()),
-      lastLoginExpressive: user.lastLogin.toString(),
+      lastLogin: this.datetimeHelper.formatDateTime(user.lastLogin?.toISOString()),
+      lastLoginExpressive: user.lastLogin?.toString(),
     }
   }
 }
