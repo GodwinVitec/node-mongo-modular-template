@@ -9,7 +9,12 @@ class AuthRepository {
   }
 
   async createAuthToken(authTokenData) {
-    return await this.userAuthToken.create(authTokenData);
+
+    if (this.commonHelper.empty(authTokenData)) {
+      throw Error('The \'authTokenData\' parameter is required');
+    }
+
+    return this.userAuthToken.create(authTokenData);
   }
 
   async updateAuthToken(

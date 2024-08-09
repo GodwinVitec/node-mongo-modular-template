@@ -41,11 +41,11 @@ class BaseValidator {
         if (!status) {
           return this.validationError(res, err);
         } else {
-
           req.validated = (new Commons()).validated(
             req,
             this
           );
+
           return next();
         }
       }

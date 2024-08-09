@@ -4,6 +4,10 @@ class BaseTransformer {
   }
 
   transformCollection(collection) {
+    if (!Array.isArray(collection)) {
+      throw new Error('The collection must be an array or iterable.');
+    }
+
     return collection.map(item => this.transform(item));
   }
 }
