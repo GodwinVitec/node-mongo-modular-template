@@ -26,7 +26,7 @@ class AuthRepository {
     if (this.commonHelper.empty(filter)) {
       throw new Error(
         this.commonHelper.trans(
-          "auth.errors.filterParameterRequired"
+          "commons.errors.filterParameterRequired"
         )
       );
     }
@@ -34,9 +34,19 @@ class AuthRepository {
     if(this.commonHelper.empty(update)) {
       throw new Error(
         this.commonHelper.trans(
-          "auth.errors.updateParameterRequired"
+          "commons.errors.updateParameterRequired"
         )
       );
+    }
+
+    if(
+      options === null ||
+      typeof options !== 'object' ||
+      Array.isArray(options)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        'commons.errors.invalidOptions'
+      ));
     }
 
     if (!isMany) {
@@ -61,7 +71,7 @@ class AuthRepository {
     if (this.commonHelper.empty(filter)) {
       throw new Error(
         this.commonHelper.trans(
-          "auth.errors.filterParameterRequired"
+          "commons.errors.filterParameterRequired"
         )
       );
     }

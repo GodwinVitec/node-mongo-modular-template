@@ -9,7 +9,7 @@ class OTPRepository {
   }
 
   create = async (otpData) => {
-    return await this.model.create(otpData)
+    return this.model.create(otpData);
   }
 
   async update(
@@ -21,7 +21,7 @@ class OTPRepository {
     if (this.commonHelper.empty(filter)) {
       throw new Error(
         this.commonHelper.trans(
-          "auth.errors.filterParameterRequired"
+          "commons.errors.filterParameterRequired"
         )
       );
     }
@@ -29,9 +29,19 @@ class OTPRepository {
     if(this.commonHelper.empty(update)) {
       throw new Error(
         this.commonHelper.trans(
-          "auth.errors.updateParameterRequired"
+          "commons.errors.updateParameterRequired"
         )
       );
+    }
+
+    if(
+      options === null ||
+      typeof options !== 'object' ||
+      Array.isArray(options)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        'commons.errors.invalidOptions'
+      ));
     }
 
     if (!isMany) {
@@ -56,9 +66,19 @@ class OTPRepository {
     if (this.commonHelper.empty(filter)) {
       throw new Error(
         this.commonHelper.trans(
-          "auth.errors.filterParameterRequired"
+          "commons.errors.filterParameterRequired"
         )
       );
+    }
+
+    if(
+      filter === null ||
+      typeof filter !== 'object' ||
+      Array.isArray(filter)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        'commons.errors.invalidFilter'
+      ));
     }
 
     if(!isMany) {
@@ -71,11 +91,30 @@ class OTPRepository {
   }
 
   async find(filter = {}) {
+    if(
+      filter === null ||
+      typeof filter !== 'object' ||
+      Array.isArray(filter)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        "commons.errors.invalidFilter"
+      ));
+    }
+
     return this.model.find({...filter});
   }
 
-
   async findOne(filter = {}) {
+    if(
+      filter === null ||
+      typeof filter !== 'object' ||
+      Array.isArray(filter)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        "commons.errors.invalidFilter"
+      ));
+    }
+
     return this.model.findOne({...filter});
   }
 }
