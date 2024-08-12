@@ -8,7 +8,7 @@ const env = (new Commons()).env;
 describe('AuthRepository', () => {
   let authRepository;
 
-  const uri = 'mongodb://localhost:27017/test_shippa';
+  const uri = `mongodb://${env('TEST_DB_HOST')}:${env('TEST_DB_PORT')}/${env('TEST_DB_NAME')}`;
 
   beforeAll(async () => {
     await mongoose.connect(uri);
@@ -46,7 +46,7 @@ describe('AuthRepository', () => {
   });
 
   describe('createAuthToken', () => {
-    it('should throw error if called without the prameter or with invalid object', async () => {
+    it('should throw error if called without the parameter or with invalid object', async () => {
       await expect(authRepository.createAuthToken())
         .rejects.toThrow(/required/i);
 
@@ -111,12 +111,12 @@ describe('AuthRepository', () => {
   });
 
   describe('getUserAuthTokens', () => {
-    it('should throw error for invalid user', async () => {
+    it('should throw error on failure for invalid user', async () => {
       await expect(authRepository.getUserAuthTokens({_id: 'anyany'}))
         .rejects.toThrow();
     });
 
-    it('should return a list of documents for a valid user', async () => {
+    it('should return a list of documents on success', async () => {
       await expect(authRepository.getUserAuthTokens({_id: new mongoose.Types.ObjectId()}))
         .resolves.toBeInstanceOf(Array);
     });
@@ -136,13 +136,113 @@ describe('AuthRepository', () => {
     });
   });
 
+  describe('updateAuthToken', () => {
+    it('should throw error if the filter parameter is not supplied', async () => {
+      await expect(authRepository.destroyAuthToken())
+        .rejects.toThrow(/filter parameter is required/i);
+    });
+
+    it('should throw error if the update parameter is not supplied', async () => {
+      await expect(authRepository.updateAuthToken({key: 'value'}))
+        .rejects.toThrow(/update parameter is required/i);
+    });
+
+    it('should throw error if the options parameter is not a valid object, or an array', async () => {
+      await expect(authRepository.updateAuthToken(
+        {key: 'value'},
+        {key: 'value'},
+        'string'
+      )).rejects.toThrow(/must be an object with key value pairs/i);
+
+      await expect(authRepository.updateAuthToken(
+        {key: 'value'},
+        {key: 'value'},
+        10 // number
+      )).rejects.toThrow(/must be an object with key value pairs/i);
+
+      await expect(authRepository.updateAuthToken(
+        {key: 'value'},
+        {key: 'value'},
+        ['string'] // array
+      )).rejects.toThrow(/must be an object with key value pairs/i);
+
+      await expect(authRepository.updateAuthToken(
+        {key: 'value'},
+        {key: 'value'},
+        null
+      )).rejects.toThrow(/must be an object with key value pairs/i);
+    });
+
+    it('should update the token matching the filter', async () => {
+      const filter = {accessToken: 'another thing'};
+      await UserAuthToken.deleteMany(filter).exec(); // delete matching tokens first to be sure
+
+      const authTokenData = {
+        user: new mongoose.Types.ObjectId(),
+        refreshToken: 'no other thing',
+        ...filter
+      };
+
+      const update = {refreshToken: 'some other thing'};
+
+      await expect(authRepository.createAuthToken(authTokenData))
+        .resolves.not.toThrow();
+
+      const authTokenMatch = {...filter,...update};
+      const options = {new: true};
+
+      await expect(authRepository.updateAuthToken(
+        filter,
+        update,
+        options
+      )).resolves.toMatchObject(authTokenMatch);
+    });
+
+    it('should update all tokens matching the filter if the \'isMany\' parameter is true', async () => {
+      let filter = {accessToken: 'another thing'};
+      await UserAuthToken.deleteMany(filter).exec(); // delete matching tokens first to be sure
+      const update = {
+        refreshToken: 'some other thing'
+      };
+
+      const authTokenData = {
+        user: new mongoose.Types.ObjectId(),
+        refreshToken: 'no other thing',
+        ...filter
+      };
+
+      const tokensToCreate = 4;
+
+      for (let i = 0; i < tokensToCreate; i++) {
+        await expect(authRepository.createAuthToken(authTokenData)) // Create three tokens
+          .resolves.not.toThrow();
+      }
+
+      await expect(authRepository.updateAuthToken(
+        filter,
+        update,
+        {},
+        true
+      )) // Update all matching tokens
+        .resolves.not.toThrow();
+
+      filter = {
+        ...filter,
+        ...update
+      };
+
+      await expect(authRepository.getUserAuthTokens(filter))
+        .resolves.toHaveLength(tokensToCreate); // Get all tokens matching the filter.
+    });
+  });
+
   describe('deleteAuthToken', () => {
     it('should throw error for invalid filter', async () => {
       await expect(authRepository.destroyAuthToken())
         .rejects.toThrow(/required/i);
     });
 
-    it('should delete the token for the filter', async () => {
+    it('should destroy the token matching the filter', async () => {
       const filter = {accessToken: 'another thing'};
       await UserAuthToken.deleteMany(filter).exec(); // delete matching tokens first to be sure
 
@@ -161,5 +261,26 @@ describe('AuthRepository', () => {
       await expect(authRepository.getUserAuthToken(filter)) // Try to get the token back.
         .resolves.toBeNull();
     });
-  })
-})
+
+    it('should destroy all tokens matching the filter if the \'isMany\' parameter is true', async () => {
+      const filter = {accessToken: 'another thing'};
+
+      const authTokenData = {
+        user: new mongoose.Types.ObjectId(),
+        refreshToken: 'no other thing',
+        ...filter
+      };
+
+      for (let i = 0; i < 4; i++) {
+        await expect(authRepository.createAuthToken(authTokenData)) // Create three tokens
+          .resolves.not.toThrow();
+      }
+
+      await expect(authRepository.destroyAuthToken(filter, true)) // Delete all tokens
+        .resolves.not.toThrow();
+
+      await expect(authRepository.getUserAuthToken(filter)) // Try to get any  token matching the filter.
+        .resolves.toBeNull();
+    });
+  });
+});

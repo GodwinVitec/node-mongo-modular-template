@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --detectOpenHandles",
+    "test-dev": "APP_ENV=local jest --detectOpenHandles",
     "dev": "APP_ENV=local nodemon index.js --trace-warnings"
   },
   "keywords": [],

@@ -9,7 +9,7 @@ class SignInAttemptRepository {
   }
 
   create = async (attemptData) => {
-    return await this.model.create(attemptData)
+    return this.model.create(attemptData);
   }
 
   async update(
@@ -21,17 +21,47 @@ class SignInAttemptRepository {
     if (this.commonHelper.empty(filter)) {
       throw new Error(
         this.commonHelper.trans(
-          "auth.errors.filterParameterRequired"
+          "commons.errors.filterParameterRequired"
         )
       );
+    }
+
+    if(
+      filter === null ||
+      typeof filter !== 'object' ||
+      Array.isArray(filter)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        'commons.errors.invalidOptions'
+      ));
     }
 
     if(this.commonHelper.empty(update)) {
       throw new Error(
         this.commonHelper.trans(
-          "auth.errors.updateParameterRequired"
+          "commons.errors.updateParameterRequired"
         )
       );
+    }
+
+    if(
+      update === null ||
+      typeof update !== 'object' ||
+      Array.isArray(update)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        'commons.errors.invalidOptions'
+      ));
+    }
+
+    if(
+      options === null ||
+      typeof options !== 'object' ||
+      Array.isArray(options)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        'commons.errors.invalidOptions'
+      ));
     }
 
     if (!isMany) {
@@ -63,9 +93,19 @@ class SignInAttemptRepository {
     if (this.commonHelper.empty(filter)) {
       throw new Error(
         this.commonHelper.trans(
-          "auth.errors.filterParameterRequired"
+          "commons.errors.filterParameterRequired"
         )
       );
+    }
+
+    if(
+      filter === null ||
+      typeof filter !== 'object' ||
+      Array.isArray(filter)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        'commons.errors.invalidFilter'
+      ));
     }
 
     if(!isMany) {
@@ -78,11 +118,31 @@ class SignInAttemptRepository {
   }
 
   async find(filter = {}) {
+    if(
+      filter === null ||
+      typeof filter !== 'object' ||
+      Array.isArray(filter)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        'commons.errors.invalidFilter'
+      ));
+    }
+
     return this.model.find({...filter});
   }
 
 
   async findOne(filter = {}) {
+    if(
+      filter === null ||
+      typeof filter !== 'object' ||
+      Array.isArray(filter)
+    ) {
+      throw new Error(this.commonHelper.trans(
+        'commons.errors.invalidFilter'
+      ));
+    }
+
     return this.model.findOne({...filter});
   }
 }

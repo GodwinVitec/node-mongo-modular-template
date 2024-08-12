@@ -20,8 +20,6 @@
     "errors": {
       "unauthenticated": "Unauthenticated. Please sign in.",
       "unauthorized": "Unauthorized. It appears you do not have the appropriate rights to access this resource.",
-      "filterParameterRequired": "The filter parameter is required.",
-      "updateParameterRequired": "The update parameter is required.",
       "authTokens": {
         "notFound": "Unauthorized. We could not find the authorization for that token."
       },
@@ -90,6 +88,10 @@
 
     },
     "errors": {
+      "filterParameterRequired": "The filter parameter is required.",
+      "invalidFilter": "The filter parameter must be an object with key value pairs.",
+      "updateParameterRequired": "The update parameter is required.",
+      "invalidOptions": "The options parameter must be an object with key value pairs.",
       "config": {
         "accessStringRequired": "The accessString parameter is required."
       },
