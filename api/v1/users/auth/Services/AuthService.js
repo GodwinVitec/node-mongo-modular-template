@@ -10,20 +10,24 @@ const moment = require("moment");
 
 class AuthService extends BaseService {
   #signInAttemptRepository;
+  #authRepository;
+  #userService;
+  #commonHelper;
+  #dateHelper;
 
   constructor() {
     super();
-    this.authRepository = new AuthRepository();
+    this.#authRepository = new AuthRepository();
     this.#signInAttemptRepository = new SignInAttemptRepository();
 
-    this.userService = new UserService();
-    this.commonHelper = new Commons();
-    this.dateHelper = new DateHelper();
+    this.#userService = new UserService();
+    this.#commonHelper = new Commons();
+    this.#dateHelper = new DateHelper();
   }
 
   signup = async (userData) => {
     try {
-      const signUpResponse = await this.userService.create({...userData});
+      const signUpResponse = await this.#userService.create({...userData});
 
       if (!signUpResponse.status) {
         return signUpResponse;
@@ -36,7 +40,7 @@ class AuthService extends BaseService {
     } catch (err) {
       return this.error(
         [
-          this.commonHelper.trans(
+          this.#commonHelper.trans(
             "auth.errors.singUp.failed"
           ),
           err.message
@@ -48,23 +52,36 @@ class AuthService extends BaseService {
 
   attempt = async (userData, req) => {
     if (
-      this.commonHelper.empty(userData.username) ||
-      this.commonHelper.empty(userData.password)
+      this.#commonHelper.empty(userData) ||
+      this.#commonHelper.empty(userData.username) ||
+      this.#commonHelper.empty(userData.password)
     ) {
       return this.error(
-        this.commonHelper.trans(
-          "auth.signIn.requiredParameters"
+        this.#commonHelper.trans(
+          "auth.errors.signIn.requiredParameters"
         )
       );
     }
 
-    const userExists = await this.userService.findOne({
+    if(
+      req === null ||
+      typeof req !== 'object' ||
+      Array.isArray(req)
+    ) {
+      return this.error(
+        this.#commonHelper.trans(
+          "auth.errors.signIn.invalidRequestObject"
+        )
+      )
+    }
+
+    const userExists = await this.#userService.findOne({
       username: userData.username
     });
 
     if (!userExists.status) {
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "user.errors.account.notFound"
         )
       );
@@ -75,13 +92,13 @@ class AuthService extends BaseService {
     const passwordMatched = await user.comparePassword(userData.password);
 
     if (!passwordMatched) {
-      this.commonHelper.log(
+      this.#commonHelper.log(
         JSON.stringify({
           activity: 'Login Attempt',
           details: {...userData},
           status: 'failed'
         }),
-        this.commonHelper.config(
+        this.#commonHelper.config(
           "app.logging.logLevel.WARN"
         )
       );
@@ -89,7 +106,7 @@ class AuthService extends BaseService {
       await this.#signInAttemptRepository.create({
         user: user._id,
         ...userData,
-        ipAddress: this.commonHelper.getIpAddress(req)
+        ipAddress: this.#commonHelper.getIpAddress(req)
       });
 
       const totalFailedAttempts = await this.#signInAttemptRepository
@@ -100,16 +117,16 @@ class AuthService extends BaseService {
       user = await this.#onFailedSignInAttempt(user, totalFailedAttempts);
 
       if (
-        user.status === this.commonHelper.config(
+        user.status === this.#commonHelper.config(
           "auth.account.statuses.SUSPENDED"
         )
       ) {
         return this.error(
-          this.commonHelper.trans(
+          this.#commonHelper.trans(
             "user.errors.account.disabledUntil"
           ).replace(
             ':until',
-            this.dateHelper.formatDateTime(
+            this.#dateHelper.formatDateTime(
               moment(user.suspendedAt).add(user.suspensionDuration, 'minutes')
                 .toISOString()
             )
@@ -118,21 +135,21 @@ class AuthService extends BaseService {
       }
 
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.signIn.invalidCredentials"
         )
       );
     }
 
 
-    // if the account is suspended and the number of failed attempts exceeds
+    // if the account is suspended, and the number of failed attempts exceeds
     // the ALERT threshold, or the time of suspension has not elapsed,
     // then prevent signing in.
     if (
-      user.status === this.commonHelper.config(
+      user.status === this.#commonHelper.config(
         "auth.account.statuses.SUSPENDED"
       ) && (
-        user.failedSignIns > this.commonHelper.config(
+        user.failedSignIns > this.#commonHelper.config(
           "auth.account.suspension.thresholdCounts.ALERT"
         ) ||
         moment().isBefore(
@@ -144,22 +161,22 @@ class AuthService extends BaseService {
       // If the number of failed sign-ins did surpass the ALERT threshold
       // then the user must use forgot password.
 
-      if(user.failedSignIns > this.commonHelper.config(
+      if(user.failedSignIns > this.#commonHelper.config(
         "auth.account.suspension.thresholdCounts.ALERT"
       )) {
         return this.error(
-          this.commonHelper.trans(
+          this.#commonHelper.trans(
             "user.errors.account.disabledUseForgotPassword"
           )
         );
       }
 
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "user.errors.account.disabledUntil"
         ).replace(
           ':until',
-          this.dateHelper.formatDateTime(
+          this.#dateHelper.formatDateTime(
             moment(user.suspendedAt).add(user.suspensionDuration, 'minutes')
               .toISOString()
           )
@@ -169,7 +186,7 @@ class AuthService extends BaseService {
 
     if (!user.isActive) {
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "user.errors.account.disabled"
         )
       );
@@ -187,16 +204,16 @@ class AuthService extends BaseService {
     // From failedSignIns <= ALERT threshold we can unblock
     // the account if the waiting time elapses
     if (
-      user.status === this.commonHelper.config(
+      user.status === this.#commonHelper.config(
         "auth.account.statuses.SUSPENDED"
       )
     ) {
-      await this.userService.activateAccount(user);
+      await this.#userService.activateAccount(user);
     }
 
     delete userData.password;
 
-    this.commonHelper.log(
+    this.#commonHelper.log(
       JSON.stringify({
         activity: 'Login Attempt',
         details: {...userData},
@@ -205,24 +222,135 @@ class AuthService extends BaseService {
     );
 
     return this.success(
-      this.commonHelper.trans(
+      this.#commonHelper.trans(
         "auth.messages.signIn.attemptSuccess"
       ),
       user
     );
   }
 
+  getAuthTokens = async (user) => {
+    const accessToken = jwt.sign(
+      {
+        sub: user._id
+      },
+      this.#commonHelper.env('JWT_SECRET'),
+      {
+        expiresIn: this.#commonHelper.env(
+          'JWT_ACCESS_TOKEN_EXPIRY'
+        )
+      }
+    );
 
+    const refreshToken = jwt.sign(
+      {
+        sub: user._id
+      },
+      this.#commonHelper.env('JWT_SECRET'),
+      {
+        expiresIn: this.#commonHelper.env(
+          'JWT_REFRESH_TOKEN_EXPIRY'
+        )
+      }
+    );
+
+    const userAuthTokens = await this.#authRepository.createAuthToken(
+      {
+        user: user._id,
+        accessToken,
+        refreshToken
+      }
+    );
+
+    return this.success(
+      this.#commonHelper.trans(
+        "auth.messages.authTokens.generated"
+      ),
+      userAuthTokens
+    );
+  }
+
+  refreshToken = async (refreshToken) => {
+    let userId = null;
+
+    jwt.verify(
+      refreshToken,
+      this.#commonHelper.env('JWT_SECRET'),
+      async function (err, decoded) {
+        if (!(new Commons()).empty(decoded)) {
+          userId = decoded.sub;
+        }
+      }
+    );
+
+    if (this.#commonHelper.empty(userId)) {
+      return this.error(
+        this.#commonHelper.trans(
+          "auth.errors.authTokens.notFound"
+        )
+      );
+    }
+
+    const tokenExists = await this.#authRepository.getUserAuthToken(
+      {
+        refreshToken,
+        user: new Types.ObjectId(userId)
+      }
+    );
+
+    if (
+      this.#commonHelper.empty(tokenExists) ||
+      this.#commonHelper.empty(tokenExists._id)
+    ) {
+      return this.error(
+        this.#commonHelper.trans(
+          "auth.errors.authTokens.notFound"
+        )
+      );
+    }
+
+    const accessToken = jwt.sign(
+      {
+        sub: tokenExists.user
+      },
+      this.#commonHelper.env('JWT_SECRET'),
+      {
+        expiresIn: this.#commonHelper.env(
+          'JWT_ACCESS_TOKEN_EXPIRY'
+        )
+      }
+    );
+
+    const newAuthTokens = await this.#authRepository.updateAuthToken(
+      {
+        userId: tokenExists.userId,
+        refreshToken
+      }, {
+        accessToken
+      }, {
+        new: true
+      }
+    )
+
+    return this.success(
+      this.#commonHelper.trans(
+        "auth.messages.authTokens.refreshed"
+      ),
+      newAuthTokens
+    );
+  }
+
+  // Private functions begin here
   #onFailedSignInAttempt = async (user, failedAttempts) => {
     if (typeof failedAttempts !== 'number') {
       throw new Error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "commons.errors.value.mustBeNumber"
         ).replace(":parameter", 'failedAttempts')
       );
     }
 
-    const suspension = this.commonHelper.config(
+    const suspension = this.#commonHelper.config(
       "auth.account.suspension"
     );
 
@@ -235,7 +363,7 @@ class AuthService extends BaseService {
      * If any of these are not available, kindly remove from all concerned places
      * otherwise an error will be thrown.
      */
-    this.validateSuspensionConfig(suspension);
+    this.#validateSuspensionConfig(suspension);
 
     if (failedAttempts < suspension.thresholdCounts.ALERT) {
       // There are not enough failed attempts to warrant an action
@@ -246,7 +374,7 @@ class AuthService extends BaseService {
       failedSignIns: failedAttempts
     };
 
-    if (this.commonHelper.empty(user.suspendedAt)) {
+    if (this.#commonHelper.empty(user.suspendedAt)) {
       suspensionConfig.suspendedAt = new Date();
     }
 
@@ -266,11 +394,11 @@ class AuthService extends BaseService {
       suspensionConfig.suspensionDuration = durations.ALERT;
     }
 
-    suspensionConfig.status = this.commonHelper.config(
+    suspensionConfig.status = this.#commonHelper.config(
       "auth.account.statuses.SUSPENDED"
     );
 
-    const updateUser = await this.userService.update(user._id, suspensionConfig);
+    const updateUser = await this.#userService.update(user._id, suspensionConfig);
 
     if (updateUser.status !== true) {
       throw new Error(updateUser.errors.join('. '))
@@ -279,50 +407,8 @@ class AuthService extends BaseService {
     return updateUser.data;
   }
 
-
-  getAuthTokens = async (user) => {
-    const accessToken = jwt.sign(
-      {
-        sub: user._id
-      },
-      this.commonHelper.env('JWT_SECRET'),
-      {
-        expiresIn: this.commonHelper.env(
-          'JWT_ACCESS_TOKEN_EXPIRY'
-        )
-      }
-    );
-
-    const refreshToken = jwt.sign(
-      {
-        sub: user._id
-      },
-      this.commonHelper.env('JWT_SECRET'),
-      {
-        expiresIn: this.commonHelper.env(
-          'JWT_REFRESH_TOKEN_EXPIRY'
-        )
-      }
-    );
-
-    const userAuthTokens = await this.authRepository.createAuthToken(
-      {
-        user: user._id,
-        accessToken,
-        refreshToken
-      }
-    );
-
-    return this.success(
-      this.commonHelper.trans(
-        "auth.messages.authTokens.generated"
-      ),
-      userAuthTokens
-    );
-  }
-
-  validateSuspensionConfig = (suspension) => {
-    const empty = this.commonHelper.empty;
+  #validateSuspensionConfig = (suspension) => {
+    const empty = this.#commonHelper.empty;
 
     if (
       typeof suspension !== 'object' ||
@@ -340,7 +426,7 @@ class AuthService extends BaseService {
       empty(suspension.duration.DEADLY)
     ) {
       throw new Error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.accountSuspension.configNotFound"
         )
       );
@@ -355,7 +441,7 @@ class AuthService extends BaseService {
         )
       ) {
         throw new Error(
-          this.commonHelper.trans(
+          this.#commonHelper.trans(
             "auth.errors.accountSuspension.invalidConfiguration"
           )
         );
@@ -371,7 +457,7 @@ class AuthService extends BaseService {
         )
       ) {
         throw new Error(
-          this.commonHelper.trans(
+          this.#commonHelper.trans(
             "auth.errors.accountSuspension.invalidConfiguration"
           )
         );
@@ -379,76 +465,6 @@ class AuthService extends BaseService {
     }
   }
 
-
-  refreshToken = async (refreshToken) => {
-    let userId = null;
-
-    jwt.verify(
-      refreshToken,
-      this.commonHelper.env('JWT_SECRET'),
-      async function (err, decoded) {
-        if (!(new Commons()).empty(decoded)) {
-          userId = decoded.sub;
-        }
-      }
-    );
-
-    if (this.commonHelper.empty(userId)) {
-      return this.error(
-        this.commonHelper.trans(
-          "auth.errors.authTokens.notFound"
-        )
-      );
-    }
-
-    const tokenExists = await this.authRepository.getUserAuthToken(
-      {
-        refreshToken,
-        user: new Types.ObjectId(userId)
-      }
-    );
-
-    if (
-      this.commonHelper.empty(tokenExists) ||
-      this.commonHelper.empty(tokenExists._id)
-    ) {
-      return this.error(
-        this.commonHelper.trans(
-          "auth.errors.authTokens.notFound"
-        )
-      );
-    }
-
-    const accessToken = jwt.sign(
-      {
-        sub: tokenExists.user
-      },
-      this.commonHelper.env('JWT_SECRET'),
-      {
-        expiresIn: this.commonHelper.env(
-          'JWT_ACCESS_TOKEN_EXPIRY'
-        )
-      }
-    );
-
-    const newAuthTokens = await this.authRepository.updateAuthToken(
-      {
-        userId: tokenExists.userId,
-        refreshToken
-      }, {
-        accessToken
-      }, {
-        new: true
-      }
-    )
-
-    return this.success(
-      this.commonHelper.trans(
-        "auth.messages.authTokens.refreshed"
-      ),
-      newAuthTokens
-    );
-  }
 }
 
 module.exports = AuthService;

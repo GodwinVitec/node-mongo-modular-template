@@ -23,6 +23,11 @@ const otpSchema = new Schema({
     type: String,
     required: true
   },
+  timeUnit: {
+    type: String,
+    enum: config("auth.otp.allowedTimeUnits"),
+    default: config("auth.otp.timeUnits.MINUTES")
+  },
   duration: {
     type: Number,
     default: 5

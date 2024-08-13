@@ -6,44 +6,78 @@ const {Types} = require("mongoose");
 const moment = require("moment");
 
 class OTPService extends BaseService {
+  #repository;
+  #userService;
+  #commonHelper;
+
   constructor() {
     super();
 
-    this.repository = new OTPRepository();
+    this.#repository = new OTPRepository();
 
-    this.userService = new UserService();
-    this.commonHelper = new Commons();
+    this.#userService = new UserService();
+    this.#commonHelper = new Commons();
   }
 
   generate = () => {
-    let otp = String(Math.random() * 100000000 + Date.now());
+    const otp = String(Math.floor(
+      Math.random() * 99999999999999 + Date.now()
+    ));
 
-    const midpoint = Math.floor(otp.length / 2);
-
-    return otp.substring(midpoint - 3, midpoint + 3);
+    return otp.substring(otp.length - 6);
   }
 
-  create = async(user, purpose, duration = null) => {
+  create = async(
+    user,
+    purpose,
+    duration = null,
+    timeUnit = this.#commonHelper.config('auth.otp.timeUnits.MINUTES')
+  ) => {
     if (
-      this.commonHelper.empty(user?.email) ||
-      this.commonHelper.empty(user?._id)
+      this.#commonHelper.empty(user?.email) ||
+      this.#commonHelper.empty(user?._id)
     ) {
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.otp.incompleteParameters"
         )
       );
     }
 
     if (
-      !this.commonHelper.config("auth.otp.allowedTypes")
+      !this.#commonHelper.config("auth.otp.allowedTypes")
         .includes(purpose)
     ) {
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.otp.invalidPurpose"
         )
       );
+    }
+
+    if (
+      !this.#commonHelper.config("auth.otp.allowedTimeUnits")
+        .includes(timeUnit)
+    ) {
+      return this.error(
+        this.#commonHelper.trans(
+          "auth.errors.otp.invalidPurpose"
+        )
+      );
+    }
+
+    // Verify that the user exists and was actually assigned this OTP
+    // To guard against manipulations at db level
+    const userResponse = await this.#userService.findOne({
+      _id: new Types.ObjectId(user._id)
+    });
+
+    if (!userResponse.status) {
+      return this.error(
+        this.#commonHelper.trans(
+          "auth.errors.otp.unauthorizedUser"
+        )
+      )
     }
 
     const otp = this.generate();
@@ -53,24 +87,25 @@ class OTPService extends BaseService {
       user: user._id,
       email: user.email,
       purpose,
-      duration: duration ?? this.commonHelper.config(
+      duration: duration ?? this.#commonHelper.config(
         `auth.otp.types.${purpose.toUpperCase()}.defaultDurationInMinutes`
-      )
+      ),
+      timeUnit
     };
 
     try {
       // Destroy other existing OTPs for the same
       // purpose for the same user
-      await this.repository.destroy({
+      await this.#repository.destroy({
         user: new Types.ObjectId(user._id),
         purpose
       });
 
       // Create a new OTP
-      await this.repository.create(otpData);
+      await this.#repository.create(otpData);
 
       return this.success(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.messages.otp.generated"
         ),
         { otp }
@@ -86,28 +121,28 @@ class OTPService extends BaseService {
   verify = async(otp, email, purpose) => {
     // Validate the purpose of the OTP
     if (
-      !this.commonHelper.config("auth.otp.allowedTypes")
+      !this.#commonHelper.config("auth.otp.allowedTypes")
         .includes(purpose)
     ) {
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.otp.invalidPurpose"
         )
       );
     }
 
     // Verify that the OTP exists
-    const otpData = await this.repository.findOne({
+    const otpData = await this.#repository.findOne({
       email,
       purpose
     });
 
     if (
-      this.commonHelper.empty(otpData) ||
-      this.commonHelper.empty(otpData._id)
+      this.#commonHelper.empty(otpData) ||
+      this.#commonHelper.empty(otpData._id)
     ) {
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.otp.notFound"
         )
       );
@@ -115,7 +150,7 @@ class OTPService extends BaseService {
 
     // Verify that the user exists and was actually assigned this OTP
     // To guard against manipulations at db level
-    const userResponse = await this.userService.findOne({
+    const userResponse = await this.#userService.findOne({
       _id: new Types.ObjectId(otpData.user)
     });
 
@@ -124,7 +159,7 @@ class OTPService extends BaseService {
       userResponse.data.email !== email
     ) {
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.otp.unauthorizedUser"
         )
       )
@@ -133,18 +168,18 @@ class OTPService extends BaseService {
     // Check OTP expiry
     const createdAt = moment(otpData.createdAt).add(
       otpData.duration,
-      "minutes"
+      otpData.timeUnit
     );
 
     if(
       moment().isAfter(createdAt)
     ) {
-      await this.repository.destroy({
+      await this.#repository.destroy({
         _id: new Types.ObjectId(otpData._id)
       });
 
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.otp.expired"
         )
       );
@@ -155,19 +190,19 @@ class OTPService extends BaseService {
       !(await otpData.compare(otp))
     ) {
       return this.error(
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.otp.invalid"
         )
       )
     }
 
     // Destroy the OTP and return success
-    await this.repository.destroy({
+    await this.#repository.destroy({
       _id: new Types.ObjectId(otpData._id)
     });
 
     return this.success(
-      this.commonHelper.trans(
+      this.#commonHelper.trans(
         "auth.messages.otp.verified"
       ),
       userResponse.data
