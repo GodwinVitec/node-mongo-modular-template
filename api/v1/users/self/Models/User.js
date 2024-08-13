@@ -9,7 +9,6 @@ const userSchema = new Schema({
     type: String,
     required: true,
     index: true,
-    unique: true
   },
   lastName: {
     type: String,
@@ -19,17 +18,19 @@ const userSchema = new Schema({
   username: {
     type: String,
     index: true,
-    default: null
+    default: null,
+    unique: true,
   },
   password: {
     type: String,
     required: true,
-    default: null
+    default: null,
   },
   email: {
     type: String,
     required: true,
     index: true,
+    unique: true
   },
   countryPhoneCode: {
     type: String,

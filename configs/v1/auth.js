@@ -4,6 +4,16 @@ const AuthConfig = {
       "Login",
       "Signup"
     ],
+    allowedTimeUnits: [
+      'milliseconds',
+      'seconds',
+      'minutes',
+      'hours',
+      'days',
+      'weeks',
+      'months',
+      'years'
+    ],
     types: {
       LOGIN: {
         title: "Login",
@@ -14,6 +24,16 @@ const AuthConfig = {
         defaultDurationInMinutes: 15
       }
     },
+    timeUnits: {
+      MILLISECONDS: 'milliseconds',
+      SECONDS: 'seconds',
+      MINUTES: 'minutes',
+      HOURS: 'hours',
+      DAYS: 'days',
+      WEEKS: 'weeks',
+      MONTHS: 'months',
+      YEARS: 'years'
+    }
   },
   account: {
     allowedStatuses: [

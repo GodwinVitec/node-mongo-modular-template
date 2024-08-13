@@ -26,6 +26,7 @@
       "otp": {
         "incompleteParameters": "Please provide all required parameters.",
         "invalidPurpose": "This is not a valid purpose for an OTP.",
+        "invalidTimeUnit": "This is not a valid time unit.",
         "notFound": "Sorry. You have provided an invalid OTP.",
         "unauthorizedUser": "You have provided an invalid OTP. Please retry.",
         "invalid": "Sorry. You have provided an invalid OTP. Please retry.",
@@ -33,7 +34,8 @@
       },
       "signIn": {
         "requiredParameters": "Username and Password are required.",
-        "invalidCredentials": "Invalid sign in credentials."
+        "invalidCredentials": "Invalid sign in credentials.",
+        "invalidRequestObject": "Invalid request object."
       },
       "signUp": {
         "failed": "Registration failed.",
