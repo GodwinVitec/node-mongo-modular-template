@@ -21,7 +21,8 @@
       "unauthenticated": "Unauthenticated. Please sign in.",
       "unauthorized": "Unauthorized. It appears you do not have the appropriate rights to access this resource.",
       "authTokens": {
-        "notFound": "Unauthorized. We could not find the authorization for that token."
+        "notFound": "Unauthorized. We could not find the authorization for that token.",
+        "invalidRefreshToken": "The refresh token provided is invalid."
       },
       "otp": {
         "incompleteParameters": "Please provide all required parameters.",
@@ -57,7 +58,8 @@
       },
       "accountSuspension": {
         "configNotFound": "No account suspension configuration found.",
-        "invalidConfiguration": "Invalid suspension configuration."
+        "invalidConfiguration": "Invalid suspension configuration.",
+        "invalidTimeUnit": "Invalid suspension time unit."
       }
     }
   },

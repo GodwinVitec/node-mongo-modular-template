@@ -9,26 +9,36 @@ const UserService = require('../../self/Services/UserService');
 const UserTransformer = require("../../self/Transformers/UserTransformer");
 
 class AuthController extends BaseController{
+  #authService;
+  #userService;
+  #otpService;
+
+  #loginTransformer;
+  #userAuthTokenTransformer;
+  #userTransformer;
+
+  #commonHelper;
+
   constructor() {
     super();
 
-    this.authService = new AuthService();
-    this.userService = new UserService();
-    this.otpService = new OTPService();
+    this.#authService = new AuthService();
+    this.#userService = new UserService();
+    this.#otpService = new OTPService();
 
-    this.loginTransformer = new LoginTransformer();
-    this.userAuthTokenTransformer = new UserAuthTokensTransformer();
+    this.#loginTransformer = new LoginTransformer();
+    this.#userAuthTokenTransformer = new UserAuthTokensTransformer();
 
-    this.userTransformer = new UserTransformer();
+    this.#userTransformer = new UserTransformer();
 
-    this.commonHelper = new Commons();
+    this.#commonHelper = new Commons();
   }
 
   me = async (req, res) => {
     return this.success(
       res,
-      this.commonHelper.trans("auth.messages.user"),
-      this.userTransformer.transform(req.user)
+      this.#commonHelper.trans("auth.messages.user"),
+      this.#userTransformer.transform(req.user)
     );
   }
 
@@ -45,7 +55,7 @@ class AuthController extends BaseController{
     if(password !== passwordConfirmation) {
       return this.fail(
         res,
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.signUp.password.confirmationMismatch"
         ),
         null,
@@ -53,12 +63,12 @@ class AuthController extends BaseController{
       );
     }
 
-    const userExistsResponse = await this.userService.findOne({email});
+    const userExistsResponse = await this.#userService.findOne({email});
 
     if(userExistsResponse.status) {
       return this.fail(
         res,
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.signUp.email.duplicate"
         ),
         null,
@@ -66,11 +76,11 @@ class AuthController extends BaseController{
       );
     }
 
-    const usernameTakenResponse = await this.userService.findOne({username});
+    const usernameTakenResponse = await this.#userService.findOne({username});
     if(usernameTakenResponse.status) {
       return this.fail(
         res,
-        this.commonHelper.trans(
+        this.#commonHelper.trans(
           "auth.errors.signUp.username.duplicate"
         ),
         null,
@@ -78,7 +88,7 @@ class AuthController extends BaseController{
       );
     }
 
-    const signupResponse = await this.authService.signup(validated, res);
+    const signupResponse = await this.#authService.signup(validated, res);
 
     if (signupResponse.status !== true) {
       return this.fail(
@@ -88,36 +98,36 @@ class AuthController extends BaseController{
       );
     }
 
-    let generateOTP = await this.otpService.create(
+    let generateOTP = await this.#otpService.create(
       signupResponse.data,
-      this.commonHelper.config(
+      this.#commonHelper.config(
         "auth.otp.types.SIGNUP.title"
       )
     );
 
-    if (!generateOTP?.status) {
-      // Retry one time and move on
-      generateOTP = await this.otpService.create(
-        signupResponse.data,
-        this.commonHelper.config(
-          "auth.otp.types.SIGNUP.title"
-        )
-      );
+    if (
+      this.#commonHelper.env('APP_ENV') === this.#commonHelper.config(
+        "app.envs.types.LOCAL"
+      )
+    ) {
+      console.log('generated', generateOTP);
     }
 
     return this.success(
       res,
       signupResponse.message,
+      null,
+      201
     );
   }
 
   verifyAccount = async(req, res) => {
     const {email, otp} = req.validated;
 
-    const verifyOTP = await this.otpService.verify(
+    const verifyOTP = await this.#otpService.verify(
       otp,
       email,
-      this.commonHelper.config(
+      this.#commonHelper.config(
         "auth.otp.types.SIGNUP.title"
       )
     );
@@ -130,7 +140,7 @@ class AuthController extends BaseController{
       );
     }
 
-    const verifiedUser = await this.userService
+    const verifiedUser = await this.#userService
       .activateAccount(verifyOTP.data);
 
     if (!verifiedUser.status) {
@@ -144,7 +154,7 @@ class AuthController extends BaseController{
 
     return this.success(
       res,
-      this.commonHelper.trans(
+      this.#commonHelper.trans(
         "user.messages.account.verified"
       )
     );
@@ -153,7 +163,7 @@ class AuthController extends BaseController{
   signIn = async (req, res) => {
     const validated = req.validated;
 
-    const attemptLogin = await this.authService.attempt(
+    const attemptLogin = await this.#authService.attempt(
       validated,
       req
     );
@@ -169,9 +179,9 @@ class AuthController extends BaseController{
 
     let user = attemptLogin.data;
 
-    const generateOTP = await this.otpService.create(
+    const generateOTP = await this.#otpService.create(
       user,
-      this.commonHelper.config(
+      this.#commonHelper.config(
         "auth.otp.types.LOGIN.title"
       )
     );
@@ -186,7 +196,7 @@ class AuthController extends BaseController{
     }
 
     if (
-      this.commonHelper.env('APP_ENV') === this.commonHelper.config(
+      this.#commonHelper.env('APP_ENV') === this.#commonHelper.config(
         "app.envs.types.LOCAL"
       )
     ) {
@@ -195,7 +205,7 @@ class AuthController extends BaseController{
 
     return this.success(
       res,
-      this.commonHelper.trans(
+      this.#commonHelper.trans(
         "auth.messages.signIn.success"
       )
     );
@@ -204,10 +214,10 @@ class AuthController extends BaseController{
   verifySignIn = async (req, res) => {
     const {otp, email} = req.validated;
 
-    const verifyOTP = await this.otpService.verify(
+    const verifyOTP = await this.#otpService.verify(
       otp,
       email,
-      this.commonHelper.config(
+      this.#commonHelper.config(
         "auth.otp.types.LOGIN.title"
       )
     );
@@ -221,7 +231,7 @@ class AuthController extends BaseController{
     }
 
     let user = verifyOTP.data;
-    const userAuthTokensData = await this.authService.getAuthTokens(user);
+    const userAuthTokensData = await this.#authService.getAuthTokens(user);
 
     if (!userAuthTokensData.status) {
       return this.fail(
@@ -234,17 +244,17 @@ class AuthController extends BaseController{
 
     const userAuthTokens = userAuthTokensData.data;
 
-    const transformedAuthTokens = this.userAuthTokenTransformer.transform(
+    const transformedAuthTokens = this.#userAuthTokenTransformer.transform(
       userAuthTokens
     );
 
-    user = (await this.userService.updateLastLogin(user)).data;
+    user = (await this.#userService.updateLastLogin(user)).data;
 
-    const transformedUser = this.loginTransformer.transform(user);
+    const transformedUser = this.#loginTransformer.transform(user);
 
     return this.success(
       res,
-      this.commonHelper.trans(
+      this.#commonHelper.trans(
         "auth.messages.signIn.success"
       ),
       {
@@ -257,7 +267,7 @@ class AuthController extends BaseController{
   refreshToken = async(req, res) => {
     const {refreshToken: userRefreshToken} = req.validated;
 
-    const refreshTokenResponse = await this.authService.refreshToken(
+    const refreshTokenResponse = await this.#authService.refreshToken(
       userRefreshToken
     );
 
@@ -272,10 +282,10 @@ class AuthController extends BaseController{
 
     return this.success(
       res,
-      this.commonHelper.trans(
+      this.#commonHelper.trans(
         "auth.messages.refreshToken"
       ),
-      this.userAuthTokenTransformer.transform(
+      this.#userAuthTokenTransformer.transform(
         refreshTokenResponse.data
       )
     );
