@@ -47,6 +47,16 @@ const AuthConfig = {
       SUSPENDED: "SUSPENDED",
     },
     suspension: {
+      allowedTimeUnits: [
+        'milliseconds',
+        'seconds',
+        'minutes',
+        'hours',
+        'days',
+        'weeks',
+        'months',
+        'years'
+      ],
       thresholdCounts: {
         ALERT: 3,
         WARN: 5,
@@ -60,6 +70,16 @@ const AuthConfig = {
         MALICIOUS: 60 * 24, // One day
         ALARM: 60 * 24 * 7, // 7 Days
         DEADLY: 60 * 24 * 7 * 54 // One Year
+      },
+      timeUnits: {
+        MILLISECONDS: 'milliseconds',
+        SECONDS: 'seconds',
+        MINUTES: 'minutes',
+        HOURS: 'hours',
+        DAYS: 'days',
+        WEEKS: 'weeks',
+        MONTHS: 'months',
+        YEARS: 'years'
       }
     }
   }

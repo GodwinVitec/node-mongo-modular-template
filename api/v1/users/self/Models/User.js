@@ -86,6 +86,11 @@ const userSchema = new Schema({
     type: Number,
     default: null
   },
+  suspensionTimeUnit: {
+    type: String,
+    default: null,
+    enum: config("auth.account.suspension.allowedTimeUnits")
+  },
   suspendedAt: {
     type: Date,
     default: null

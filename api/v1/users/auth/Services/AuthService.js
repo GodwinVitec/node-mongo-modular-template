@@ -50,7 +50,13 @@ class AuthService extends BaseService {
     }
   }
 
-  attempt = async (userData, req) => {
+  attempt = async (
+    userData,
+    req,
+    suspensionTimeUnit = this.#commonHelper.config(
+      "auth.account.suspension.timeUnits.MINUTES"
+    )
+  ) => {
     if (
       this.#commonHelper.empty(userData) ||
       this.#commonHelper.empty(userData.username) ||
@@ -75,6 +81,19 @@ class AuthService extends BaseService {
       )
     }
 
+    if (
+      typeof suspensionTimeUnit !== 'string' ||
+      !this.#commonHelper.config(
+        "auth.account.suspension.allowedTimeUnits"
+      ).includes(suspensionTimeUnit)
+    ) {
+      return this.error(
+        this.#commonHelper.trans(
+          "auth.errors.accountSuspension.invalidTimeUnit"
+        )
+      );
+    }
+
     const userExists = await this.#userService.findOne({
       username: userData.username
     });
@@ -89,6 +108,7 @@ class AuthService extends BaseService {
 
     let user = userExists.data;
 
+    let totalFailedAttempts = 0;
     const passwordMatched = await user.comparePassword(userData.password);
 
     if (!passwordMatched) {
@@ -109,12 +129,16 @@ class AuthService extends BaseService {
         ipAddress: this.#commonHelper.getIpAddress(req)
       });
 
-      const totalFailedAttempts = await this.#signInAttemptRepository
+      totalFailedAttempts = await this.#signInAttemptRepository
         .count({
           user: user._id
         });
 
-      user = await this.#onFailedSignInAttempt(user, totalFailedAttempts);
+      user = await this.#onFailedSignInAttempt(
+        user,
+        totalFailedAttempts,
+        suspensionTimeUnit
+      );
 
       if (
         user.status === this.#commonHelper.config(
@@ -154,7 +178,10 @@ class AuthService extends BaseService {
         ) ||
         moment().isBefore(
           moment(user.suspendedAt)
-          .add(user.suspensionDuration, 'minutes')
+          .add(
+            user.suspensionDuration,
+            user.suspensionTimeUnit ?? suspensionTimeUnit
+          )
         )
       )
     ) {
@@ -177,8 +204,10 @@ class AuthService extends BaseService {
         ).replace(
           ':until',
           this.#dateHelper.formatDateTime(
-            moment(user.suspendedAt).add(user.suspensionDuration, 'minutes')
-              .toISOString()
+            moment(user.suspendedAt).add(
+              user.suspensionDuration,
+              user.suspensionTimeUnit ?? suspensionTimeUnit
+            ).toISOString()
           )
         )
       );
@@ -192,7 +221,12 @@ class AuthService extends BaseService {
       );
     }
 
-    if (user.failedSignIns) {
+    totalFailedAttempts = await this.#signInAttemptRepository
+      .count({
+        user: user._id
+      });
+
+    if (user.failedSignIns || totalFailedAttempts) {
       await this.#signInAttemptRepository.destroy(
         {
           user: new Types.ObjectId(user._id)
@@ -230,6 +264,21 @@ class AuthService extends BaseService {
   }
 
   getAuthTokens = async (user) => {
+    const userExists = await this.#userService.findOne({
+      username: user.username
+    });
+
+    if (
+      !userExists.status ||
+      userExists.data?.isActive !== true
+    ) {
+      throw new Error(
+        this.#commonHelper.trans(
+          "user.errors.account.notFound"
+        )
+      );
+    }
+
     const accessToken = jwt.sign(
       {
         sub: user._id
@@ -271,6 +320,16 @@ class AuthService extends BaseService {
   }
 
   refreshToken = async (refreshToken) => {
+    if(
+      typeof refreshToken !== 'string'
+    ) {
+      throw new Error(
+        this.#commonHelper.trans(
+          "auth.errors.authTokens.invalidRefreshToken"
+        )
+      );
+    }
+
     let userId = null;
 
     jwt.verify(
@@ -287,6 +346,18 @@ class AuthService extends BaseService {
       return this.error(
         this.#commonHelper.trans(
           "auth.errors.authTokens.notFound"
+        )
+      );
+    }
+
+    const userExists = await this.#userService.findOne({
+      _id: new Types.ObjectId(userId)
+    });
+
+    if (!userExists.status) {
+      return this.error(
+        this.#commonHelper.trans(
+          "user.errors.account.notFound"
         )
       );
     }
@@ -341,7 +412,13 @@ class AuthService extends BaseService {
   }
 
   // Private functions begin here
-  #onFailedSignInAttempt = async (user, failedAttempts) => {
+  #onFailedSignInAttempt = async (
+    user,
+    failedAttempts,
+    timeUnit = this.#commonHelper.config(
+      "auth.account.suspension.timeUnits.MINUTES"
+    )
+  ) => {
     if (typeof failedAttempts !== 'number') {
       throw new Error(
         this.#commonHelper.trans(
@@ -394,6 +471,7 @@ class AuthService extends BaseService {
       suspensionConfig.suspensionDuration = durations.ALERT;
     }
 
+    suspensionConfig.suspensionTimeUnit = timeUnit;
     suspensionConfig.status = this.#commonHelper.config(
       "auth.account.statuses.SUSPENDED"
     );
