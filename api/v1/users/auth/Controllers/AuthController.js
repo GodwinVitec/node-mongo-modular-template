@@ -116,7 +116,7 @@ class AuthController extends BaseController{
     return this.success(
       res,
       signupResponse.message,
-      null,
+      this.#commonHelper.env('APP_MODE') === 'test' ? generateOTP : null,
       201
     );
   }
@@ -136,7 +136,8 @@ class AuthController extends BaseController{
       return this.fail(
         res,
         verifyOTP.errors,
-        verifyOTP.trace
+        verifyOTP.trace,
+        400
       );
     }
 
@@ -173,7 +174,7 @@ class AuthController extends BaseController{
         res,
         attemptLogin.errors,
         attemptLogin.trace,
-        422
+        400
       );
     }
 
@@ -207,7 +208,8 @@ class AuthController extends BaseController{
       res,
       this.#commonHelper.trans(
         "auth.messages.signIn.success"
-      )
+      ),
+      this.#commonHelper.env('APP_MODE') === 'test' ? generateOTP : null,
     );
   }
 
@@ -226,7 +228,8 @@ class AuthController extends BaseController{
       return this.fail(
         res,
         verifyOTP.errors,
-        verifyOTP.trace
+        verifyOTP.trace,
+        400
       );
     }
 
@@ -255,7 +258,7 @@ class AuthController extends BaseController{
     return this.success(
       res,
       this.#commonHelper.trans(
-        "auth.messages.signIn.success"
+        "auth.messages.signIn.verified"
       ),
       {
         ...transformedUser,
