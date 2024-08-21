@@ -213,7 +213,12 @@ class AuthService extends BaseService {
       );
     }
 
-    if (!user.isActive) {
+    if (
+      !user.isActive ||
+      user.status !== this.#commonHelper.config(
+        "auth.account.statuses.ACTIVE"
+      )
+    ) {
       return this.error(
         this.#commonHelper.trans(
           "user.errors.account.disabled"

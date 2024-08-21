@@ -97,9 +97,9 @@ class OTPService extends BaseService {
       // Destroy other existing OTPs for the same
       // purpose for the same user
       await this.#repository.destroy({
-        user: new Types.ObjectId(user._id),
+        email: user.email,
         purpose
-      });
+      }, true);
 
       // Create a new OTP
       await this.#repository.create(otpData);

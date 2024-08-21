@@ -25,7 +25,7 @@ class Auth {
       return res.status(401)
         .send({
           status: false,
-          message: this.commons.trans("auth.errors.unauthorized")
+          error: [this.commons.trans("auth.errors.unauthorized")]
         });
     }
 
@@ -41,7 +41,7 @@ class Auth {
         return res.status(401)
           .send({
             status: false,
-            message: trans("auth.errors.unauthenticated")
+            error: [trans("auth.errors.unauthenticated")]
           });
       }
 
@@ -61,7 +61,7 @@ class Auth {
             return res.status(403)
               .send({
                 status: false,
-                message: trans("user.errors.account.disabled")
+                error: [trans("user.errors.account.disabled")]
               });
           }
 

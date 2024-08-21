@@ -87,7 +87,7 @@ class OTPRepository {
       );
     }
 
-    return this.model.deleteMany({...filter});
+    return await this.model.deleteMany({...filter}).exec();
   }
 
   async find(filter = {}) {
